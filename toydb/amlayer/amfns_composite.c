@@ -24,23 +24,23 @@ int attrLength; /* 4 for 'i' or 'f', 1-255 for 'c' */
 
 	/* Check the parameters */
 	if ((attrType != 'c') && (attrType != 'f') && (attrType != 'i'))
-		{
-		 AM_Errno = AME_INVALIDATTRTYPE;
-		 return(AME_INVALIDATTRTYPE);
-                 }
+	{
+	 	AM_Errno = AME_INVALIDATTRTYPE;
+	 	return(AME_INVALIDATTRTYPE);
+    }
         
 	if ((attrLength < 1) || (attrLength > 255))
-		{
-		 AM_Errno = AME_INVALIDATTRLENGTH;
-		 return(AME_INVALIDATTRLENGTH);
-                }
+	{
+	 	AM_Errno = AME_INVALIDATTRLENGTH;
+	 	return(AME_INVALIDATTRLENGTH);
+    }
 	
 	if (attrLength != 4)
 		if (attrType !='c')
 			{
-			 AM_Errno = AME_INVALIDATTRLENGTH;
-			 return(AME_INVALIDATTRLENGTH);
-                        }
+			 	AM_Errno = AME_INVALIDATTRLENGTH;
+			 	return(AME_INVALIDATTRLENGTH);
+            }
 	
 	header = &head;
 	
@@ -62,16 +62,16 @@ int attrLength; /* 4 for 'i' or 'f', 1-255 for 'c' */
 	AM_Check;
 	
 	/* initialise the header */
-	header->pageType = 'l'; //leaf node
-	header->nextLeafPage = AM_NULL_PAGE; 
+	header->pageType = 'l';
+	header->nextLeafPage = AM_NULL_PAGE;
 	header->recIdPtr = PF_PAGE_SIZE;
 	header->keyPtr = AM_sl;
 	header->freeListPtr = AM_NULL;
 	header->numinfreeList = 0;
-	header->attrLength = attrLength;
+	header->attrLength = attrLength + AM_si;
 	header->numKeys = 0;
 	/* the maximum keys in an internal node- has to be even always*/
-	maxKeys = (PF_PAGE_SIZE - AM_sint - AM_si)/(AM_si + attrLength);
+	maxKeys = (PF_PAGE_SIZE)/(AM_si + attrLength);
 	if (( maxKeys % 2) != 0) 
 		header->maxKeys = maxKeys - 1;
 	else 
@@ -122,13 +122,9 @@ int recId; /* id of the record to delete */
 	int pageNum; /* page Number of the page in buffer */
 	int index;/* index where key is present */
 	int status; /* whether key is in tree or not */
-	short nextRec;/* contains the next record on the list */
-	short oldhead; /* contains the old head of the list */
-	short temp; 
 	char *currRecPtr;/* pointer to the current record in the list */
 	AM_LEAFHEADER head,*header;/* header of the page */
 	int recSize; /* length of key,ptr pair for a leaf */
-	int tempRec; /* holds the recId of the current record */
 	int errVal; /* holds the return value of functions called within 
 				                            this function */
 	int i; /* loop index */
@@ -136,26 +132,31 @@ int recId; /* id of the record to delete */
 
 	/* check the parameters */
 	if ((attrType != 'c') && (attrType != 'f') && (attrType != 'i'))
-		{
-		 AM_Errno = AME_INVALIDATTRTYPE;
-		 return(AME_INVALIDATTRTYPE);
-                }
+	{
+	 	AM_Errno = AME_INVALIDATTRTYPE;
+	 	return(AME_INVALIDATTRTYPE);
+    }
 
 	if (value == NULL) 
-		{
-		 AM_Errno = AME_INVALIDVALUE;
-		 return(AME_INVALIDVALUE);
-                }
+	{
+	 	AM_Errno = AME_INVALIDVALUE;
+	 	return(AME_INVALIDVALUE);
+    }
 
 	if (fileDesc < 0) 
-		{
-		 AM_Errno = AME_FD;
-		 return(AME_FD);
-                }
+	{
+	 	AM_Errno = AME_FD;
+	 	return(AME_FD);
+    }
 
 	/* initialise the header */
 	header = &head;
 	
+	//Changing the defaults to look for valuerecID instead of just value
+	attrType = 'c';
+	bcopy(&recId, value + attrLength, AM_si);
+	attrLength = attrLength + AM_si;
+
 	/* find the pagenumber and the index of the key to be deleted if it is
 	there */
 	status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
@@ -163,65 +164,28 @@ int recId; /* id of the record to delete */
 	
 	/* check if return value is an error */
 	if (status < 0) 
-		{
-		 AM_Errno = status;
-		 return(status);
-                }
+	{
+	 	AM_Errno = status;
+	 	return(status);
+    }
 	
 	/* The key is not in the tree */
 	if (status == AM_NOT_FOUND) 
-		{
-		 AM_Errno = AME_NOTFOUND;
-		 return(AME_NOTFOUND);
-                }
+	{
+	 	AM_Errno = AME_NOTFOUND;
+	 	return(AME_NOTFOUND);
+    }
 	
 	bcopy(pageBuf,header,AM_sl);
-	recSize = attrLength + AM_ss;
-	currRecPtr = pageBuf + AM_sl + (index - 1)*recSize + attrLength;
-	bcopy(currRecPtr,&nextRec,AM_ss);
-	
-	/* search the list for recId */
-	while(nextRec != 0)
-	{
-		bcopy(pageBuf + nextRec,&tempRec,AM_si);
-		
-		/* found the recId to be deleted */
-		if (recId == tempRec)
-		{
-			/* Delete recId */
-			bcopy(pageBuf + nextRec + AM_si,currRecPtr,AM_ss);
-			header->numinfreeList++;
-			oldhead = header->freeListPtr;
-			header->freeListPtr = nextRec;
-			bcopy(&oldhead,pageBuf + nextRec + AM_si,AM_ss);
-			break;
-		}
-		else 
-	        {
-			/* go over to the next item on the list */
-			currRecPtr = pageBuf + nextRec + AM_si;
-			bcopy(currRecPtr,&nextRec,AM_ss);
-		}
-	}
-	
-	/* if end of list reached then key not in tree */
-	if (nextRec == AM_NULL)
-		{
-		 AM_Errno = AME_NOTFOUND;
-		 return(AME_NOTFOUND);
-                }
-	
-	/* check if list is empty */
-	bcopy(pageBuf + AM_sl + (index - 1)*recSize + attrLength,&temp,AM_ss);
-	if (temp == 0)
-	{
-		/* list is empty , so delete key from the list */
-		for(i = index; i < (header->numKeys);i++)
-			bcopy(pageBuf + AM_sl + i*recSize,pageBuf + AM_sl + 
-				(i-1)*recSize,recSize);
-		header->numKeys--;
-		header->keyPtr = header->keyPtr - recSize;
-	}
+	recSize = attrLength + AM_si;
+	currRecPtr = pageBuf + AM_sl + (index - 1)*recSize;
+
+	/* Delete recId */
+	for(i = index; i < (header->numKeys);i++)
+		bcopy(pageBuf + AM_sl + i*recSize,pageBuf + AM_sl + 
+			(i-1)*recSize,recSize);
+	header->numKeys--;
+	header->keyPtr = header->keyPtr - recSize;
 	
 	/* copy the header onto the buffer */
 	bcopy(header,pageBuf,AM_sl);
@@ -230,18 +194,11 @@ int recId; /* id of the record to delete */
 	
 	/* empty the stack so that it is set for next amlayer call */
 	AM_EmptyStack();
-	  {
-	   AM_Errno = AME_OK;
-	   return(AME_OK);
-          }
+	{
+		AM_Errno = AME_OK;
+		return(AME_OK);
+	}
 }
-
-
-
-
-
-
-
 
 /* Inserts a value,recId pair into the tree */
 AM_InsertEntry(fileDesc,attrType,attrLength,value,recId)
@@ -266,28 +223,32 @@ int recId; /* recId to be inserted */
 	
 	/* check the parameters */
 	if ((attrType != 'c') && (attrType != 'f') && (attrType != 'i'))
-		{
-		 AM_Errno = AME_INVALIDATTRTYPE;
-		 return(AME_INVALIDATTRTYPE);
-                }
+	{
+	 	AM_Errno = AME_INVALIDATTRTYPE;
+	 	return(AME_INVALIDATTRTYPE);
+    }
 
 	if (value == NULL) 
-		{
-		 AM_Errno = AME_INVALIDVALUE;
-		 return(AME_INVALIDVALUE);
-                }
+	{
+	 	AM_Errno = AME_INVALIDVALUE;
+	 	return(AME_INVALIDVALUE);
+    }
 
 	if (fileDesc < 0) 
-		{
-		 AM_Errno = AME_FD;
-		 return(AME_FD);
-                }
-	/* Error check completed */
+	{
+	 	AM_Errno = AME_FD;
+	 	return(AME_FD);
+    }
 	
-	/* Search the leaf for the key */ /* Search function also stores the page number, page buffer and the index in which the given key is found */
-	status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
+
+	//Changing the defaults to look for valuerecID instead of just value
+	attrType = 'c';
+	bcopy(&recId, value + attrLength, AM_si);
+	attrLength = attrLength + AM_si;
+	
+	/* Search the leaf for the key */
+	status = AM_Search(fileDesc,attrType,attrLength,value,recId,&pageNum,
 			   &pageBuf,&index);
-	/* status returns whether the given key is already present in the tree */
 
 	
 	/* check if there is an error */
@@ -331,9 +292,9 @@ int recId; /* recId to be inserted */
 		{
 			AM_EmptyStack();
 			{
-			 AM_Errno = addtoparent;
-			 return(addtoparent);
-                        }
+			 	AM_Errno = addtoparent;
+			 	return(addtoparent);
+            }
 		}
 		
 		/* if key has to be added to the parent */

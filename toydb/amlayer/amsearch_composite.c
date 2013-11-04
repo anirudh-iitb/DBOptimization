@@ -11,9 +11,8 @@ char attrType;
 int attrLength;
 char *value;
 int *pageNum; /* page number of page where key is present or can be inserted*/
-char **pageBuf; /* pointer to buffer in memory where leaf page corresponding to pageNum can be found */
-int *indexPtr; /* pointer to index in leaf where key is present or 
-                                                            can be inserted */
+char **pageBuf; /* pointer to buffer in memory where leaf page corresponding                                                        to pageNum can be found */
+int *indexPtr; /* pointer to index in leaf where key is present or can be inserted */
 
 {
 	int errVal;
@@ -44,6 +43,7 @@ int *indexPtr; /* pointer to index in leaf where key is present or
 		if (iheader->attrLength != attrLength)
 			return(AME_INVALIDATTRLENGTH);
 	}
+
 	/* find the leaf at which key is present or can be inserted */
 	while ((**pageBuf) != 'l')
 	{
@@ -192,7 +192,7 @@ AM_LEAFHEADER *header;
 	int compareVal; /* result of comparison of key with value */
 	int recSize; /* size in bytes of a key,ptr pair */
 
-	recSize = AM_ss + attrLength;
+	recSize = AM_si + attrLength;
 	low = 1;
 	high = header->numKeys;
 
