@@ -191,7 +191,7 @@ AM_LEAFHEADER *header;
 		//       ,AM_ss);
 		// bcopy((char *)&recIdPtr,tempPage + offset2 + header->attrLength,
 		//        AM_ss);
-		bcopy(pagebuf+offset1+header->attrLength,tempPage+offset2+header->attrLength,AM_si);
+		bcopy(pageBuf+offset1+header->attrLength,tempPage+offset2+header->attrLength,AM_si);
 		// while (nextRec != 0)
 		// {
 		// 	bcopy(pageBuf + nextRec,tempPage + recIdPtr,AM_si);
