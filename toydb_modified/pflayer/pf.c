@@ -424,6 +424,7 @@ RETURN VALUE:
 {
 
 	*pagenum = -1;
+	*pagebuf = (char*)malloc(2*sizeof(char));
 	return(PF_GetNextPage(fd,pagenum,pagebuf));
 }
 

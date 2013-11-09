@@ -33,7 +33,7 @@ extern char *malloc();
 # define AM_sint sizeof(AM_INTHEADER)
 # define AM_sc sizeof(char)
 # define AM_sf sizeof(float)
-# define AM_NOT_FOUND 0 /* Key is not in tree */
+# define AM_NOT_FOUND 13 /* Key is not in tree */
 # define AM_FOUND 1 /* Key is in tree */
 # define AM_NULL 0 /* Null pointer for lists in a page */
 # define AM_MAX_FNAME_LENGTH 80

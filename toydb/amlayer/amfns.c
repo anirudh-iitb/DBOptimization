@@ -287,6 +287,8 @@ int recId; /* recId to be inserted */
 	/* Search the leaf for the key */ /* Search function also stores the page number, page buffer and the index in which the given key is found */
 	status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
 			   &pageBuf,&index);
+
+	printf("page number after search %d\n",pageNum);
 	/* status returns whether the given key is already present in the tree */
 
 	

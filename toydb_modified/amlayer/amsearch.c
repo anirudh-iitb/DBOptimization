@@ -27,15 +27,23 @@ int *indexPtr; /* pointer to index in leaf where key is present or can be insert
 	// attrLength = attrLength + AM_si;
 
         /* get the root of the B+ tree */
-
+	// errVal = PF_UnfixPage(fileDesc,pageNum,FALSE);
+	pageBuf = (char**)malloc(2*sizeof(char*));
+	pageNum = (int*)malloc(sizeof(int));
 	errVal = PF_GetFirstPage(fileDesc,pageNum,pageBuf);
+	printf("%d\n",*pageNum);
+	printf("errval %d\n",errVal);
 	AM_Check;
 	if (**pageBuf == 'l' ) 
 		/* if root is a leaf page */
 	{
 		bcopy(*pageBuf,lheader,AM_sl);
-		if (lheader->attrLength != attrLength)
-			return(AME_INVALIDATTRLENGTH);
+		// if (lheader->attrLength != attrLength){
+		// 	// printf("%s\n","1" );
+		// 	printf("%d,%d\n",lheader->attrLength,attrLength);
+		// 	return(AME_INVALIDATTRLENGTH);
+		// }
+		
 		
 	}
 	else /* root is not a leaf */
@@ -44,10 +52,10 @@ int *indexPtr; /* pointer to index in leaf where key is present or can be insert
 		if (iheader->attrLength != attrLength)
 			return(AME_INVALIDATTRLENGTH);
 	}
-
 	/* find the leaf at which key is present or can be inserted */
 	while ((**pageBuf) != 'l')
 	{
+		printf("olalalalala\n");
 		/* find the next page to be followed */
 		nextPage = AM_BinSearch(*pageBuf,attrType,attrLength,value,
 					indexPtr,iheader);
@@ -82,6 +90,7 @@ int *indexPtr; /* pointer to index in leaf where key is present or can be insert
 		}
 	}
 	/* find whether key is in leaf or not */
+	printf("pageNum = %d\n",*pageNum);
 	return(AM_SearchLeaf(*pageBuf,attrType,attrLength,value,indexPtr,lheader));
 }
 
@@ -198,10 +207,12 @@ AM_LEAFHEADER *header;
 	low = 1;
 	high = header->numKeys;
 
+
 	/* The leaf is Empty */
 	if (high == 0) 
 	{
 		*indexPtr = 1;
+		// printf("lol\n");
 		return(AM_NOT_FOUND);
 	}
 

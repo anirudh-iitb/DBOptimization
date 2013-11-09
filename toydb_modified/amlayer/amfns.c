@@ -248,8 +248,14 @@ int recId; /* recId to be inserted */
 	 	return(AME_FD);
     }
 	
+	printf("Page number initial %d\n",pageNum);
     status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
 			   &pageBuf,&index);
+
+    printf("status1 %d\n",status);
+    printf("page number %d\n",pageNum);
+    errVal = PF_UnfixPage(fileDesc,pageNum,FALSE);
+	printf("errVal inside insert %d\n",errVal);
 
 	int recId_pseudo = recId;
 
@@ -263,6 +269,8 @@ int recId; /* recId to be inserted */
 	/* Search the leaf for the key */
 		status = AM_Search(fileDesc,attrType,attrLength,value,recId,&pageNum,
 			   &pageBuf,&index);
+		printf("status2 %d\n",status);
+
 	}
 	else {
 		recId_pseudo = AM_MAX_INT;
@@ -300,6 +308,8 @@ int recId; /* recId to be inserted */
 	/* Insert into leaf the key,recId pair */
 	inserted = AM_InsertintoLeaf(pageBuf,attrLength,value,recId,index,
 				     status);
+
+	printf("inserted the value %s, %d\n",value,inserted);
 
 	/* if key has been inserted then done */
 	if (inserted == TRUE) 
