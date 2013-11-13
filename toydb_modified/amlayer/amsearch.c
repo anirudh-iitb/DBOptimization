@@ -24,12 +24,13 @@ int *indexPtr; /* pointer to index in leaf where key is present or can be insert
 	lheader = &lhead;
 	iheader = &ihead;
     
+
 	errVal = PF_GetFirstPage(fileDesc,pageNum,pageBuf);
 	// *pageNF_GetThisPage(fileDesc,0,pageBuf);
 	// printf("pagebuf is %c\n", **pageBuf);
 	// printf("int node is %d\n", *pageNum);
 	// printf("AM_Leftpagenum is %d\n",AM_LeftPageNum);
-	// printf("pagenum is %d\n\n",*pageNum);
+	printf("pagenum is %d\n",*pageNum);
 	
 	// printf("errVal is %d\n",errVal);
 	AM_Check;
@@ -210,6 +211,7 @@ AM_LEAFHEADER *header;
 	recSize = AM_si + attrLength;
 	low = 1;
 	high = header->numKeys;
+	printf("High is %d\n", high);
 
 
 	/* The leaf is Empty */
@@ -329,7 +331,6 @@ char *bufPtr;
 char attrType;
 char *valPtr;
 int attrLength;
-
 {
 	// printf("absfdhb\n");
 	int bufint,valint;/* temporary aligned storage for comparison */
@@ -338,7 +339,7 @@ int attrLength;
 	int retVal;
 	// printf("type = %c\n",)
 
-	switch(type)
+	switch(attrType)
 	{
 	case 'i' : 
 		{

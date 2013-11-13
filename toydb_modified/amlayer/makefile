@@ -1,4 +1,4 @@
-all: a.out t1 t2 t3
+all: a.out
 
 a.out : am.o amfns.o amsearch.o aminsert.o amstack.o amglobals.o ../pflayer/pflayer.o main.o amscan.o amprint.o
 	cc -g am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o ../pflayer/pflayer.o main.o amscan.o amprint.o 
@@ -7,10 +7,10 @@ t1 : am.o amfns.o amsearch.o aminsert.o amstack.o amglobals.o ../pflayer/pflayer
 	cc -g -o t1.out am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o ../pflayer/pflayer.o test1.o amscan.o amprint.o
 
 t2 : am.o amfns.o amsearch.o aminsert.o amstack.o amglobals.o ../pflayer/pflayer.o test2.o amscan.o amprint.o
-	cc -g -o t1.out am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o ../pflayer/pflayer.o test1.o amscan.o amprint.o
+	cc -g -o t2.out am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o ../pflayer/pflayer.o test2.o amscan.o amprint.o
 
-t3 : am.o amfns.o amsearch.o aminsert.o amstack.o amglobals.o ../pflayer/pflayer.o test3.o amscan.o amprint.o
-	cc -g -o t1.out am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o ../pflayer/pflayer.o test1.o amscan.o amprint.o
+#t3 : am.o amfns.o amsearch.o aminsert.o amstack.o amglobals.o ../pflayer/pflayer.o test3.o amscan.o amprint.o
+#	cc -g -o t1.out am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o ../pflayer/pflayer.o test1.o amscan.o amprint.o
 
 amlayer.o : am.o amfns.o amsearch.o aminsert.o amstack.o amglobals.o amscan.o amprint.o
 	ld -r am.o amfns.o amsearch.o aminsert.o  amstack.o amglobals.o amscan.o amprint.o  -o amlayer.o

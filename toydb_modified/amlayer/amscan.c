@@ -107,7 +107,7 @@ int val;
 bcopy(value,&val,AM_si);
 // printf("The search index is opened with %d\n",val);
 //////////////////////////////////////////OUR CHANGE///////////////////////////////////////
-attrType = 'c';
+// attrType = 'c';
 int recID_pseudo = 0;
 bcopy(&recID_pseudo, value + attrLength-AM_si, AM_si);
 // attrLength = attrLength + AM_si;  

@@ -10,6 +10,7 @@ typedef struct am_leafheader
 		short attrLength;
 		short numKeys;
 		short maxKeys;
+		int length;
 	}  AM_LEAFHEADER; /* Header for a leaf page */
 
 typedef struct am_intheader 
@@ -18,6 +19,7 @@ typedef struct am_intheader
 		short numKeys;
 		short maxKeys;
 		short attrLength;
+		int length;
 	}	AM_INTHEADER ; /* Header for an internal node */
 
 extern int AM_RootPageNum; /* The page number of the root */
@@ -55,7 +57,7 @@ extern int length;
 # define NOT_EQUAL 6
 # define MAXSCANS 20
 # define AM_MAXATTRLENGTH 256
-# define AM_MAX_INT INT_MAX 
+# define AM_MAX_INT 500000 
 
 
 # define AME_OK 0

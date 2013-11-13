@@ -50,6 +50,7 @@ int attrLength; /* 4 for 'i' or 'f', 1-255 for 'c' */
 	// printf("type is %c\n",attrType);
 
 	length = attrLength;
+	// header->length = length;
 
 	/* Get the filename with extension and create a paged file by that name*/
 
@@ -165,7 +166,7 @@ int recId; /* id of the record to delete */
 	header = &head;
 	
 	//Changing the defaults to look for valuerecID instead of just value
-	attrType = 'c';
+	// attrType = 'c';
 	bcopy(&recId, value + attrLength, AM_si);
 	attrLength = attrLength + AM_si;
 
@@ -322,11 +323,12 @@ int recId; /* recId to be inserted */
 	// 	// bcopy(&ee,pageBuf+AM_sint+attrLength+AM_si,AM_si);
 	// 	errVal = PF_UnfixPage(fileDesc,pageNum,TRUE);
 	// }
-
+    printf("recID is %d\n", recId);
     status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
 			   &pageBuf,&index);
     // printf("status is %d\n",status);
-    // printf("the status is %d\n",status);
+    printf("the status is %d\n",status);
+    printf("The page number found is %d\n", pageNum);
  	
     errVal = PF_UnfixPage(fileDesc,pageNum,FALSE);
 
@@ -336,11 +338,12 @@ int recId; /* recId to be inserted */
 	//Changing the defaults to look for valuerecID instead of just value
 	if(status == AM_NOT_FOUND){
 		recId_pseudo = 0;
-		attrType = 'c';
+		// attrType = 'c';
 		bcopy(&recId_pseudo, value + attrLength, AM_si);
 		attrLength = attrLength + AM_si;
 		status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
 			   &pageBuf,&index);
+		 printf("the status2 is %d\n",status);
     	// if(recId==256){
     		// printf("the status2 is %d\n",status);
     		// printf("The page number obtained for 256 is %d\n",pageNum);
@@ -352,12 +355,12 @@ int recId; /* recId to be inserted */
 	else {
 		// printf("recId is %d\n",recId);
 		recId_pseudo = AM_MAX_INT;
-		attrType = 'c';
+		// attrType = 'c';
 		bcopy(&recId_pseudo, value + attrLength, AM_si);
 		attrLength = attrLength + AM_si;
 	
 	/* Search the leaf for the key */
-		status = AM_Search(fileDesc,attrType,attrLength,value,recId,&pageNum,
+		status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
 			   &pageBuf,&index);
 
 		if(status!=AM_NOT_FOUND)
@@ -367,7 +370,7 @@ int recId; /* recId to be inserted */
 			recId_pseudo = recId;
 			bcopy(&recId_pseudo, value + attrLength, AM_si);
 			attrLength = attrLength + AM_si;
-			status = AM_Search(fileDesc,attrType,attrLength,value,recId,&pageNum,
+			status = AM_Search(fileDesc,attrType,attrLength,value,&pageNum,
 			   &pageBuf,&index);
 		}
 	}
@@ -383,6 +386,7 @@ int recId; /* recId to be inserted */
 	/* Insert into leaf the key,recId pair */
 	inserted = AM_InsertintoLeaf(pageBuf,attrLength,value,recId,index,
 				     status);
+	printf("The inserted vaue is %d\n", inserted);
 
     // if(recId==256) printf("the inserted value is %d\n",inserted);
 
