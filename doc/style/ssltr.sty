@@ -1,0 +1,73 @@
+\nonstopmode % Do not stop if the font is not available
+
+\font\Titlefnt=cmssdc10 scaled \magstep4
+%\newfont{\titlefnt}{cmssdc10 scaled\magstep3} 
+%\newfont{\Titlefnt}{cmssdc10 scaled\magstep4} 
+\font\twelvessf=lcmss8 scaled \magstep2
+%\newfont{\twelvessf}{lcmss8 scaled\magstep2}
+\errorstopmode % revert back to stop on error
+
+\gdef\@traux{}
+
+\def\maketrcover{%
+\begin{titlepage}
+\let\footnotesize\small
+\let\footnote\thanks
+\def\footnoterule{\hrule\vskip .75em}
+\renewcommand\thefootnote{\@fnsymbol\c@footnote}
+\setcounter{page}{0}
+\vskip -1.0in
+    {\huge
+    \begin{center}
+        {\Titlefnt \@title} 
+    \end{center} \par}
+    \noindent{\lineskip .75em
+    \begin{center}
+      \begin{tabular}[t]{c}\@author\end{tabular}
+    \end{center}
+    \par}
+\vfill
+\begin{center}
+    {\large \sc IISc-CSA-SSL-TR-\@tryear-\@trnum}\\
+    {\tt\small\ \centerline{\url{http://stochastic.iisc.ernet.in/www/research/files/IISc-CSA-SSL-TR-\@tryear-\@trnum.pdf}}}\\[2em]
+    \includegraphics[width=2in]{style/ssl_logo.pdf}\\
+    {\large %\twelvessf
+    \textsf{
+     {Stochastic Systems Lab} \\
+     {Computer Science and Automation} \\
+     {Indian Institute of Science, India}\\[0.75em]
+     {\@trdate}}}\\
+\end{center}
+\vskip 1in
+\par\noindent{\small\textit \@traux}
+\@thanks
+\end{titlepage}
+\ \\\thispagestyle{empty}\pagebreak
+\setcounter{page}{1}
+\setcounter{footnote}{0}
+\global\let\@tryear\relax
+\global\let\@trnum\relax
+\global\let\@traux\relax
+\global\let\@trdate\relax
+\global\let\@thanks\@empty
+} %maketrcover
+\def\monthname#1{\ifcase#1 \errmessage{month must be between 1 and 12} \or January\or February\or March\or April\or May\or June\or July\or August\or September\or October\or November\or December \else \errmessage{month must be between 1 and 12}\fi}
+\def\trinfo#1#2#3{\gdef\@tryear{#1}\gdef\@trnum{#3}\gdef\@trdate{\monthname{#2} #1}}
+\def\traux#1{\gdef\@traux{#1}}
+
+\pagestyle{myheadings}
+\newcommand{\pageheadings}[2]{\markboth{\hfill#1\hfill}{\hfill#2\hfill}}
+
+{
+\newdimen{\temp}
+\setlength{\temp}{\oddsidemargin}
+\setlength{\oddsidemargin}{\evensidemargin}
+\setlength{\evensidemargin}{\temp}
+}
+%\setlength{\oddsidemargin}{0pt}
+%\setlength{\evensidemargin}{0pt}
+
+\newcommand{\affiliation}[1]{\gdef\@affiliation{#1}}
+
+\let\m=\maketitle
+\def\maketitle{\m {\def\thefootnote{} \footnote{\@affiliation}}}

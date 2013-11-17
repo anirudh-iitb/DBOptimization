@@ -1,0 +1,350 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\title{\textbf{Documentation of the AM Layer of ToyDB}}
+\author{~~Anirudh Vemula ~ Rajeev Kumar M \\ Vamsidhar Yeddu ~ Kartik Pranav K \\ \\ \\ \\ \\ \\ \\}
+\begin{document}
+\maketitle
+\newpage
+\lhead{Access Method Layer}
+\section*{Access Method (AM) Layer}
+AM layer is an abstracted layer that helps to support an indexed file abstraction, where files are organised as heaps and may have any number of single-attribute secondary indices associated with them to speed up selection and equality-join queries. In this layer, we borrow the utility of Paged File (PF) layer to represent a B+ tree index, and we use pages in the file to represent individual tree nodes. \\ \\
+AM layer supports \emph{inserting}, \emph{deleting} and \emph{scanning} on a B+ tree index. There are separate routines to implement these functionalities in addition to interfaces provided for creating and destroying an index. Scanning in AM layer supports operations such as: equality, greater than, less than, greater than or equal to, less than or equal to and not  equal. \\ \\
+AM layer only supports indexing on single attribute and doesn't support multi-attribute indexing. The indexing employed by AM layer indexes on the attribute and stores pointers to memory (on the same page) containing record IDs rather than the actual records. The underlying memory manipulations and the file page handling is done by the PF layer.
+
+\section{Major routines in AM Layer}
+This section describes all the major routines that a user can use to create indices, insert entries, delete entries and scan through the entries.
+\subsection{\texttt{AM\_CreateIndex(fileName, indexNo, attrType, attrLength)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileName} : name of the indexed file}
+	\item{\texttt{indexNo} : index number for this file}
+	\item{\texttt{attrType} : type of the indexed attribute}
+	\item{\texttt{attrLength}: Length of the indexed attribute in bytes}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{\texttt{AME\_INVALIDATTRLENGTH} : If the given attrLength is invalid}
+	\item{\texttt{AME\_INVALIDATTRTYPE} : If the given attrType is invalid}
+	\item{\texttt{AME\_PF} : If there is an error in opening/handling the file}
+	\item{\texttt{AME\_OK} : If the index is successfully created}
+\end{itemize}
+\subsubsection{Description}
+This function, as the name suggests, creates an index in a file given by \texttt{fileName} with index number \texttt{indexNo}. This function creates a file named \texttt{fileName.indexNo} to store the index in. It then allocates memory and creates a new page in the file in which it stores the root node. This root node is initially a leaf node as there are no keys yet, so the page header is initialised as a leaf header and the appropriate parameters are initialised. We write this header onto the page, then close the file and set the \texttt{AM\_RootPageNum} parameter to the page number of the newly created page.
+
+\subsection{\texttt{AM\_DestroyIndex(fileName, indexNo)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileName} : name of the indexed file}
+	\item{\texttt{indexNo} : index number for this file}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{\texttt{AME\_PF} : If there is an error in opening/handling the file}
+	\item{\texttt{AME\_OK} : If the index is successfully destroyed}
+\end{itemize}
+\subsubsection{Description}
+This function destroys the index specified by the \texttt{indexNo} stored in the file \texttt{fileName}. Essentially, it destroys the file named \texttt{fileName.indexNo}.
+
+\subsection{\texttt{AM\_InsertEntry(fileDesc, attrType, attrLength, value, recID)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileDesc} : File descriptor}
+	\item{\texttt{value} : value to be inserted into the index}
+	\item{\texttt{redid} : ID of the record whose attribute value is being inserted}
+\end{itemize}
+\subsubsection{Return value}
+\begin{itemize}
+	\item{\texttt{AME\_INVALIDATTRTYPE}}
+	\item{\texttt{AME\_INVALIDATTRLENGTH}}
+	\item{\texttt{AME\_INVALIDVALUE} : If value is NULL}
+	\item{\texttt{AME\_FD} : If the file descriptor is less than zero i.e. invalid file descriptor}
+	\item{return value less than zero implies an error in either the search or insert or split}
+	\item{\texttt{AME\_OK} : Insertion was successful}
+\end{itemize}
+\subsubsection{Description}
+This function initially searches the index for the given value to check whether it already exists or not. If exists, the page number of its location and if not exists, the page number of its expected location if it was inserted, is stored. This information is passed onto the \texttt{AM\_InsertintoLeaf} function to actually insert the (value, recID) pair into the index. This function returns true if it was successfully inserted. If it returns false, then the leaf was full and needs to be split which is accomplished by the \texttt{AM\_SplitLeaf} function. This function returns true, if there is a value that needs to be inserted into the parent due to the split. If true, then the \texttt{AM\_AddtoParent} function is called. If at any stage of this whole process, a function fails then a negative value is returned by \texttt{AM\_InsertEntry} function.
+
+\subsection{\texttt{AM\_DeleteEntry(fileDesc, attrType, attrLength, value, recID)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileDesc}}
+	\item{\texttt{attrType}}
+	\item{\texttt{attrLength}}
+	\item{\texttt{value} : value to be deleted}
+	\item{\texttt{recID} : record ID of the record whose attribute value is being deleted}
+\end{itemize}
+\subsubsection{Return value}
+\begin{itemize}
+	\item{\texttt{AME\_FD}}
+	\item{\texttt{AME\_INVALIDATTRTYPE}}
+	\item{\texttt{AME\_INVALIDATTRLENGTH}}
+	\item{\texttt{AME\_INVALIDVALUE} : If value is NULL}
+	\item{\texttt{AME\_NOTFOUND} : If the given value is not found in the index}
+	\item{\texttt{AME\_OK} : If the deletion was successful}
+\end{itemize}
+\subsubsection{Description}
+This function initially searches for the page and index at which the value exists. If the value is not found, it returns \texttt{AME\_NOTFOUND}. If found, then it follows the pointer stored at the index to the list of recIDs corresponding to records with the same value. It then iterates through this list to find the appropriate recID and deletes it. It then updates the free list (stored in header) accordingly. In the case where the record currently being deleted is the last record for the given value, it deletes the key too and displaces all the keys present after it by one place.
+
+\subsection{\texttt{AM\_OpenIndexScan(fileDesc, attrType, attrLength, op, value)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileDesc}}
+	\item{\texttt{attrType}}
+	\item{\texttt{attrLength}}
+	\item{\texttt{op} : The operation used for comparison}
+	\item{\texttt{value} : value on which the comparison is made}
+\end{itemize}
+\subsubsection{Return value}
+\begin{itemize}
+	\item{\texttt{AME\_FD}}
+	\item{\texttt{AME\_INVALIDATTRTYPE}}
+	\item{\texttt{AME\_SCAN\_TAB\_FULL} : If you have exceeded the maximum number of scans}
+	\item{\texttt{AME\_PF}}
+	\item{return value less than zero implies an error}
+\end{itemize}
+\subsubsection{Description}
+This function sets up the framework to scan through the index according to the user's preferences. If \texttt{value} is NULL, then irrespective of the operation, the scan iterates through all the records in the index. If the \texttt{value} is not NULL, then the scan table is appropriately set to the next index and page. The bounds for the scan are also set according to the operation listed in \texttt{op}. After setting up the scan table, a scan descriptor is returned.
+
+\subsection{\texttt{AM\_FindNextEntry(scanDesc)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{scanDesc} : The scan descriptor}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{\texttt{AME\_INVALID\_SCANDESC} : The scanDesc is invalid}
+	\item{\texttt{AME\_EOF} : The scan has reached its end}
+	\item{record ID of the next entry in the scan}
+\end{itemize}
+\subsubsection{Description}
+This function uses the framework set up by \texttt{AM\_OpenIndexScan} to iterate through all the entries satisfying the scan criterion. This function makes the appropriate boundary checks and terminates the scan when there is no more to scan. Each call of this function returns the next ID of the record which satisfies the scan criterion.
+
+\subsection{\texttt{AM\_CloseIndexScan(scanDesc)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{scanDesc} : The scan descriptor}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{\texttt{AME\_INVALID\_SCANDESC} : The scanDesc is invalid}
+	\item{\texttt{AME\_OK}}
+\end{itemize}
+\subsubsection{Description}
+This function takes the scan descriptor and terminates the scan corresponding to it.
+
+
+\section{Other Routines in AM Layer}
+
+\subsection{\texttt{AM\_InsertintoLeaf(pageBuf, attrLength, value, recId, index, status)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{pageBuf} : Buffer where the leaf page resides}
+	\item{\texttt{attrLength}}
+	\item{\texttt{value} : The value that you intend to insert}
+	\item{\texttt{recId}}
+	\item{\texttt{index} : index where the key is to be inserted}
+	\item{\texttt{status} : Whether the key is a new key or an old one}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{TRUE : If the insertion was successful}
+	\item{FALSE : If the insertion failed due to lack of room}
+\end{itemize}
+\subsubsection{Description}
+If the status is \texttt{AM\_FOUND}, then the key is an old one. So a record must be inserted. For this, the function first checks whether the freeList is empty or not. If empty, then it checks whether there is enough space for a new record. If not, it returns FALSE. If there is space, it calls the \texttt{AM\_InsertToLeafFound} function to insert the recId. If the freeList is not empty and there is not enough space to insert a record, then \texttt{AM\_Compact} is called to create space for a record by compacting the free list. If status is \texttt{AM\_NOTFOUND}, then the key is a new key. The same check of checking the space remaining is done. If there is non, then it returns FALSE. If there is enough space, then \texttt{AM\_InsertToLeafNotFound} function is called to insert the value and recID.
+
+\subsection{\texttt{AM\_InsertToLeafFound(pageBuf, recID, index, header)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{pageBuf}}
+	\item{\texttt{recID}}
+	\item{\texttt{index}}
+	\item{\texttt{header}}
+\end{itemize}
+\subsubsection{Return Value}
+No return Value.
+\subsubsection{Description}
+If the free list is not empty, then the function inserts the recID into the first slot of the free list. If it is empty, then the function inserts the recID into the list of recIDs list at the head of it. It makes appropriate change of pointers so that the head of the recID list now points to the newly added recID and other such important changes.
+
+\subsection{\texttt{AM\_InsertIntoLeafNotFound(pageBuf, value, recID, index, header)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{pageBuf}}
+	\item{\texttt{value}}
+	\item{\texttt{recID}}
+	\item{\texttt{index}}
+	\item{\texttt{header}}
+\end{itemize}
+\subsubsection{Return Value}
+No return value.
+\subsubsection{Description}
+This function creates the space for the new key by pushing all the keys greater than this to the right. It then updates the KeyPtr in the header to increment by an amount of one record size. the new value is copied into the space created and then the \texttt{AM\_InsertIntoLeafFound} function is called, as if the inserted key was an old one.
+
+\subsection{\texttt{AM\_Compact(low, high, pageBuf, tempPage, header)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{low} : lower index}
+	\item{\texttt{high} : higher index until which compact needs to be done}
+	\item{\texttt{pageBuf}}
+	\item{\texttt{tempPage} : Temporary page created after compacting pageBuf from low to high}
+	\item{\texttt{header} : header of pageBuf}
+\end{itemize}
+\subsubsection{Return value}
+Returns no value but modifies the tempPage given as input.
+\subsubsection{Description}
+This function copies all the keys from low to high and their recIDs to a temporary page \texttt{tempPage}. We can use this function to compact the free list and create some space for insertion of a new key/record by compacting the original page and writing into the same page.
+
+\subsection{\texttt{AM\_Search(fileDesc, attrType, attrLength, value, pageNum, pageBuf, indexPtr)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileDesc} : file descriptor}
+	\item{\texttt{attrtType}}
+	\item{\texttt{attrLength}}
+	\item{\texttt{value} : The value that is searched for}
+	\item{\texttt{pageNum} : page number of the page where key is present or can be inserted}
+	\item{\texttt{pageBuf} : pointer to buffer in memory where the leaf page corresponding to pageNum can be found}
+	\item{\texttt{indexPtr} : pointer to index in leaf where key is present or can be inserted}
+\end{itemize}
+\subsubsection{Return value}
+\begin{itemize}
+	\item{\texttt{AME\_INVALIDATTRTYPE}}
+	\item{\texttt{AME\_INVALIDATTRLENGTH}}
+	\item{\texttt{AM\_NOTFOUND} : If not found}
+	\item{\texttt{AM\_FOUND} : If found}
+\end{itemize}
+\subsubsection{Description}
+This function searches the file given by \texttt{fileDesc} for the page where the \texttt{value} is present or can be inserted. Upon finish, it returns the page number, index and brings the concerned page into the memory pointed by \texttt{pageBuf}. It accomplishes this by doing a binary search of the value in the internal nodes(starting from root) and progressing downward the B+ tree accordingly. Upon reaching a leaf, it calls the \texttt{AM\_SearchLeaf} function which returns the index for the value in the leaf page.
+
+
+\subsection{\texttt{AM\_BinSearch(pageBuf, attrType, attrLength, value, indexPtr, header)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{pageBuf} : Buffer where the page is found}
+	\item{\texttt{attrType}}
+	\item{\texttt{attrLength}}
+	\item{\texttt{value}}
+	\item{\texttt{indexPtr} : index in the page at which the value is found}
+	\item{\texttt{header} : header of the page passed as a parameter by \texttt{AM\_Search}}
+\end{itemize}
+\subsubsection{Return Value}
+Returns the page number of the subsequent page to go to in \texttt{AM\_Search}.
+\subsubsection{Description}
+This functions implements the binary search used by ToyDB to find the subsequent page to go to while searching for a value in a B+ tree. It is used to achieve binary search on the keys stored in an internal node and get the page number of the next page accordingly. It uses the \texttt{AM\_Compare} function to compare the keys in the node with the given value. Upon finish, it returns the page number of the subsequent page the search should proceed on and the indexPtr at which this page number is found on the internal node.
+
+\subsection{\texttt{AM\_SearchLeaf(pageBuf, attrType, attrLength, value, indexPtr, header)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{pageBuf}}
+	\item{\texttt{attrType}}
+	\item{\texttt{attrLength}}
+	\item{\texttt{value}}
+	\item{\texttt{indexPtr}}
+	\item{\texttt{header}}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{\texttt{AM\_NOTFOUND}}
+	\item{\texttt{AM\_FOUND}}
+\end{itemize}
+\subsubsection{Description}
+This function searches the leaf page given (pointed by \texttt{pageBuf}) for the value and returns whether it actually found the value or not in the leaf. It employs binary search to accomplish this. If found, it points the \texttt{indexPtr} to the index where it found the value. If it doesn't find the value, then it points the \texttt{indexPtr} to where the value should be inserted.
+
+\subsection{\texttt{AM\_Compare(bufPtr, attrType, attrLength, valPtr)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{bufPtr} : Points to one of the value to be compared (in buffer)}
+	\item{\texttt{attrType}}
+	\item{\texttt{attrLength}}
+	\item{\texttt{valPtr} : Points to the other value to be compared}
+\end{itemize}
+\subsubsection{Return value}
+This function returns:
+\begin{itemize}
+	\item{0 : If the values compared are identical}
+	\item{1 : If the value pointed by \texttt{valPtr} is larger than \texttt{bufPtr}}
+	\item{-1 : If the value pointed by \texttt{valPtr} is smaller than \texttt{bufPtr}}
+\end{itemize}
+\subsubsection{Description}
+This function compares the value pointed by \texttt{valPtr} with the value pointed by the \texttt{bufPtr}. It first checks the \texttt{attrType} and then uses the appropriate comparison function to compare them.
+
+\subsection{\texttt{AM\_SplitLeaf(fileDesc, pageBuf, pageNum, attrLength, recId, value, status, index, key)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileDesc}}
+	\item{\texttt{pageBuf}}
+	\item{\texttt{pageNum} : Page number of the new leaf created is stored in this}
+	\item{\texttt{attrLength}}
+	\item{\texttt{recID}}
+	\item{\texttt{value} : Value to be inserted (that caused this split)}
+	\item{\texttt{status} : Whether the key(value) is present in the tree or not}
+	\item{\texttt{index} : place where the key is to be inserted}
+	\item{\texttt{key} : returns the key to be filled in the parent, if there is any}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{FALSE : If there is no key to be filled in the parent}
+	\item{TRUE : If there is a key to be filled in the parent}
+\end{itemize}
+\subsubsection{Description}
+This function splits the leaf when the leaf becomes full and there is no more space to insert a new key. It first compacts (using \texttt{AM\_Compact}) the first half of its keys(and their recIDs) into a temporary page and then allocates a new page for the remaining half. If the split leaf is also the root of the page, then a new page is allocated and is filled with a header with root parameters and the first key of the second leaf is added to it as the first key. If not, then the value to be added to the parent is stored in \texttt{key} and it returns TRUE.
+
+\subsection{\texttt{AM\_AddtoParent(fileDesc, pageNum, value, attrLength)}}
+\subsection{Arguments}
+\begin{itemize}
+	\item{\texttt{fileDesc}}
+	\item{\texttt{pageNum} : page number to be added to the parent}
+	\item{\texttt{value} : pointer to the attribute value to be added to the parent}
+	\item{\texttt{attrLength}}
+\end{itemize}
+\subsubsection{Return Value}
+\begin{itemize}
+	\item{\texttt{AME\_PF} : If any error arises in page handling}
+	\item{\texttt{AME\_OK} : If the insertion was successful}
+\end{itemize}
+\subsubsection{Description}
+This function adds to the parent(an internal node) the first key of the new page created due to the split. It first checks if there is enough space for a new key in the internal node. If there is, then it directly inserts the key and the associated page number(of the new page). If there isn't, then it splits the internal node using \texttt{AM\_SplitIntNode} function. If the split internal node isn't root, then it recursively calls \texttt{AM\_AddtoParent} function. Else, it creates a new page for the root and fills it with the appropriate header.
+
+\subsection{\texttt{AM\_SplitIntNode(pageBuf, pbuf1, pbuf2, header, value, pageNum, offset)}}
+\subsubsection{Arguments}
+\begin{itemize}
+	\item{\texttt{pageBuf} : Buffer containing the internal node to be split}
+	\item{\texttt{pbuf1} : buffer for one half}
+	\item{\texttt{pbuf2} : buffer for the other half}
+	\item{\texttt{header} : header of the internal node to be split}
+	\item{\texttt{value} : pointer to the key to be added}
+	\item{\texttt{pageNum}}
+	\item{\texttt{offset}}
+\end{itemize}
+\subsubsection{Return value}
+Returns no value.
+\subsubsection{Description}
+This function splits the internal node in the same way \texttt{AM\_SplitLeaf} splits the leaf node. 
+
+\section{Macros in AM Layer}
+\begin{itemize}
+	\item{\texttt{AM\_NOT\_FOUND} : 0}
+	\item{\texttt{AM\_FOUND} : 1}
+	\item{\texttt{AM\_NULL} : 0}
+	\item{\texttt{AM\_NULL\_PAGE} : -1}
+	\item{\texttt{AME\_OK} : 0}
+	\item{\texttt{AME\_INVALIDATTRLENGTH} : -1}
+	\item{\texttt{AME\_NOTFOUND} : -2}
+	\item{\texttt{AME\_PF} : -3}
+	\item{\texttt{AME\_INTERROR} : -4}
+	\item{\texttt{AME\_INVALID\_SCANDESC} : -5}
+	\item{\texttt{AME\_INVALID\_OP\_TO\_SCAN} : -6}
+	\item{\texttt{AME\_EOF} : -7}
+	\item{\texttt{AME\_SCAN\_TABLE\_FULL} : -8}
+	\item{\texttt{AME\_INVALIDATTRTYPE} : -9}
+	\item{\texttt{AME\_FD} : -10}
+	\item{\texttt{AME\_INVALIDVALUE} : -11}
+	\item{\texttt{AM\_si} : sizeof(int)}
+	\item{\texttt{AM\_ss} : sizeof(short)}
+	\item{\texttt{AM\_sl} : sizeof(leaf header)}
+	\item{\texttt{AM\_sint} : sizeof(internal header)}
+	\item{\texttt{AM\_sc} : sizeof(char)}
+	\item{\texttt{AM\_sf} : sizeof(float)}
+\end{itemize}
+
+\end{document}
